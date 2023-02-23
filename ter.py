@@ -15,10 +15,10 @@ def caracteristic_vector_opponent_color_uint8(path):
     """
     Lit une image dans le chemin 'path', convertir l'espace de couleur comme dans le papier (opponent colors) et retourne le vecteur caractéristique
     """
-    img = cv2.imread(path)
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    img = cv2.imread(path) # charge l'image
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB) # convertir l'image en RGB
     
-    #création du nouvel espace de couleurs
+    #création du nouvel espace de couleurs 
     r, g, b = img[:,:,0], img[:,:,1], img[:,:,2]
     rg = r-g
     by = 2*b-r-g
@@ -30,7 +30,7 @@ def caracteristic_vector_opponent_color_uint8(path):
     #on reshape l'image en une liste de listes de pixels à 3 valeurs (plus facile à gérer qu'une image 3d pour la génération de l'histogramme)
     data = nimg.reshape((-1,3))
     
-    #histogramme
+    #histogramme 3D ,les valeurs des canaux rg, by et wb sont divisées en 16, 16 et 8 bins respectivement, la plage de valeurs est de 0 à 256 pour chaque canal .
     hist, edges = np.histogramdd(data, bins=(16,16,8), range=((0,256),(0,256),(0,256)))
     
     #vecteur caracteritique en linearisant l'histogramme 3d
@@ -82,6 +82,8 @@ def comparison(to_classify, imgs, carac_vector, col_name):
     """
     Compare le pourcentage d'interesection de l'image 'to_classify' avec toutes les images dans le dossier 'imgs' avec la fonction 'carac_vector' (qui est une des trois fonctions définies juste avant)
     Renvoie une liste de listes qui contient le nom de l'image qu'on compare à 'to_classify' et le score. La liste est triée en fonction du score
+    
+    args: to_classify:image a commparée
     """
     color_vec1 = carac_vector(to_classify)#recuperation du vecteur caractéristique
     color_vec1 = color_vec1 / sum(color_vec1)#normalisation
@@ -111,11 +113,14 @@ def segmentation(path, new_path):
         
         blur = cv2.GaussianBlur(gray, (5,5), 0)
         
+        # 11 taille du noyau, 
         binary = cv2.adaptiveThreshold(blur, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 11, 5)
+        # inverse les 0 et 255
         binary = np.where(binary == 255, 0, 255)
         kernel = np.ones((9,9), np.uint8)
-       
+        
         binary = binary_fill_holes(binary).astype(np.uint8)
+        # fermeture
         closing = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel)
         closing = binary_fill_holes(closing).astype(np.uint8)
         closing = cv2.morphologyEx(closing, cv2.MORPH_CLOSE, kernel)
