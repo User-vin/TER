@@ -4,18 +4,19 @@ from glob import glob
 from ter import *
 import pandas as pd
 from natsort import natsort_keygen
+from kneed import KneeLocator
+from tqdm import tqdm
+from natsort import natsorted
 
-    
 
-
-def train_kmeans(imgs, carac_vector, nb_clusters):
+def train_kmeans(imgs, imgs_seg, carac_vector, nb_clusters):
     """
     Entrainement kmeans avec les vecteurs caracteristiques, création des .xlsx et écriture des résultats
     """
     x = []
     n = []
-    for img in imgs:
-        x.append(carac_vector(img))
+    for img, img_seg in zip(natsorted(imgs), natsorted(imgs_seg)):
+        x.append(carac_vector(img, img_seg))
         n.append(img.split('\\')[-1].split('.')[0])
         
     x = np.array(x).astype(np.float32)
@@ -37,7 +38,7 @@ def train_kmeans(imgs, carac_vector, nb_clusters):
 
 
 
-def predict_kmeans(img, path_xlsx, carac_vector):
+def predict_kmeans(img, img_seg, path_xlsx, carac_vector):
     """
     Calcul du centre de cluster le plus proche du vecteur de l'image donnée en paramètre
     Retourne la distance et la classe de l'image
@@ -45,7 +46,7 @@ def predict_kmeans(img, path_xlsx, carac_vector):
     df = pd.read_excel(path_xlsx, sheet_name=1)
     df['center'] = df['center'].apply(lambda x: np.array(eval(x.replace(' ', ','))))
 
-    vector = carac_vector(img)
+    vector = carac_vector(img, img_seg)
     min_dist = np.inf
     img_class = 0
     for i in range(len(df)):
@@ -58,40 +59,45 @@ def predict_kmeans(img, path_xlsx, carac_vector):
 
 
 
-def elbow(imgs, carac_vector, lower_bound, upper_bound):
+def elbow(imgs, imgs_seg, carac_vector, lower_bound, upper_bound):
     """
-    Sert à chercher le le nombre de clusters optimal pour entrainer kmeans
+    Sert à chercher le nombre de clusters optimal pour entrainer kmeans
     """
     x = []
-    for img in imgs:
-        x.append(carac_vector(img))
+    for img, img_seg in zip(natsorted(imgs), natsorted(imgs_seg)):
+        x.append(carac_vector(img, img_seg))
         
     x = np.array(x).astype(np.float32)
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 500, 1.0)
     
+    k_values = np.arange(lower_bound, upper_bound)
     comp_list = []
-    for k in range(lower_bound, upper_bound):
-        print(k)
+    for k in tqdm(k_values):
         compactness, _, _ = cv2.kmeans(x,k,None,criteria,10,cv2.KMEANS_RANDOM_CENTERS)
         comp_list.append(compactness)
         
-    return comp_list
+    kneedle = KneeLocator(k_values, comp_list, S=2.0, curve="convex", direction="decreasing")
+    kneedle.plot_knee_normalized()
+    
+    return kneedle.elbow
 
 
 
-imgs = glob(r'coil100\set1\*.png')
 
-lower_bound, upper_bound = 80, 120
-#pl = elbow(imgs, caracteristic_vector_opponent_color_int16, lower_bound, upper_bound)
-#plt.plot([i for i in range(lower_bound, upper_bound)], pl)
-#TODO: trouver elbow (regarder les dérivées secondes, gap statistic et silhouette coefficient)
-#TODO: graphiques
-
-
-#train_kmeans(imgs, caracteristic_vector_opponent_color_int16, 100)
-
-path_xlsx = 'classes.xlsx'
-path = r'coil100\set2\obj88__75.png'
-#img_class, _ = predict_kmeans(path, path_xlsx, caracteristic_vector_opponent_color_int16)
+if __name__ == "__main__":
+    
+    imgs = glob(r'C:\Users\scott\OneDrive\Bureau\papillons\peale2_pick\*.jpg')
+    imgs_seg = glob(r'C:\Users\scott\OneDrive\Bureau\papillons\masks_pick\*.jpg')
+    
+    lower_bound, upper_bound = 1, 115
+    elbow = elbow(imgs, imgs_seg, caracteristic_vector_gray, lower_bound, upper_bound)
+    
+    print(f'elbow : {elbow}')
+    
+    train_kmeans(imgs, imgs_seg, caracteristic_vector_gray, elbow)
+    
+    #path_xlsx = 'classes.xlsx'
+    #path = r'coil100\set2\obj88__75.png'
+    #img_class, _ = predict_kmeans(path, path_xlsx, caracteristic_vector_opponent_color_int16)
 
 

@@ -1,12 +1,14 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from ter import *
+from glob import glob
 
 
-def all_images(path, col):#col: +0,1,2,3,4
+def all_images(path, col):#col: +0,1,2,3
     
     df = pd.read_excel(path)
-    y = df.columns[::5].values
+    y = df.columns[::4].values
     x = df['01-01.jpg'].values
     x1 = np.arange(x.size)
 
@@ -16,6 +18,7 @@ def all_images(path, col):#col: +0,1,2,3,4
     for val in y:
         coly = df.columns.get_loc(val)
         sizes = df.iloc[:,coly+col]*50
+        print(sizes)
         y1 = np.ones((y.size,), dtype=np.uint8)*(y.size-1-i)
         ax.scatter(x1, y1, s=sizes, marker='s')
         i += 1
@@ -44,18 +47,18 @@ def single_image(name, path):
     df = pd.read_excel(path)
     col_idx = df.columns.get_loc(name)
     x = df[name]
-    y_uint8 = df.iloc[:,col_idx+1]
-    y_int16 = df.iloc[:,col_idx+2]
-    y_rgb = df.iloc[:,col_idx+3]
-    y_gray = df.iloc[:,col_idx+4]
+    #y_uint8 = df.iloc[:,col_idx+1]
+    #y_int16 = df.iloc[:,col_idx+2]
+    #y_rgb = df.iloc[:,col_idx+2]
+    y_gray = df.iloc[:,col_idx+2]#+3
     
     
     # Create the plot
     fig, ax = plt.subplots()
     fig.set_size_inches(20,5)
-    ax.plot(x, y_uint8, label='uint8')
-    ax.plot(x, y_int16, label='int16')
-    ax.plot(x, y_rgb, label='rgb')
+    #ax.plot(x, y_uint8, label='uint8')
+    #ax.plot(x, y_int16, label='int16')
+    #ax.plot(x, y_rgb, label='rgb')
     ax.plot(x, y_gray, label='gray')
     
     # Add labels and title
@@ -71,11 +74,9 @@ def single_image(name, path):
     ax.axhline(y=0.7, linewidth=0.5)
     ax.axhline(y=0.9, linewidth=0.5)
     
-    # Add a legend
     ax.legend()
     
-    # Show the plot
-    plt.savefig('comparaison_espaces.png')
+    plt.savefig(name)
     plt.show()
 
 
@@ -95,12 +96,18 @@ def labels_kmeans(path):
     plt.savefig('multi')
     plt.show()
     
-classes = r'xlsx\classes.xlsx'
-labels_kmeans(classes)
+    
+    
+classes = r'C:\Users\scott\OneDrive\Bureau\papillons\gray\kmeans\classes.xlsx'
+#labels_kmeans(classes)
 
-path = r'results.xlsx'
-#single_image('obj15__345.png', path)
-#all_images(path, 1)
+path = r'C:\Users\scott\OneDrive\Bureau\ter\results.xlsx'
+
+for i in glob(r'C:\Users\scott\OneDrive\Bureau\imgs\*'):
+    name = i.split('\\')[-1]
+    single_image(name, path)
+path = r'C:\Users\scott\OneDrive\Bureau\papillons\results.xlsx'    
+#Uall_images(path, 1)
 
 
 
